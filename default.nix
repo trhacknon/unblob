@@ -17,6 +17,7 @@
 , file
 , hyperscan
 , zstd
+, extraRuntimeDependencies ? [ ]
 }:
 
 let
@@ -32,7 +33,7 @@ let
     simg2img
     unar
     zstd
-  ];
+  ] ++ extraRuntimeDependencies;
 
   self = mkPoetryApp {
     projectDir = ./.;
