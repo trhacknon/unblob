@@ -14,8 +14,7 @@ from .file_utils import InvalidInputFormat
 from .handlers import Handlers
 from .models import File, Handler, ValidChunk
 from .parser import InvalidHexString
-from .report import CalculateChunkExceptionReport
-from .tasks import TaskResult
+from .report import CalculateChunkExceptionReport, ReportCallback
 
 logger = get_logger()
 
@@ -26,7 +25,7 @@ class HyperscanMatchContext:
     file: File
     file_size: int
     all_chunks: List
-    task_result: TaskResult
+    add_report: ReportCallback
 
 
 class _HyperscanScan(Flag):
@@ -35,7 +34,7 @@ class _HyperscanScan(Flag):
 
 
 def _calculate_chunk(
-    handler: Handler, file: File, real_offset, task_result: TaskResult
+    handler: Handler, file: File, real_offset, add_report: ReportCallback
 ) -> Optional[ValidChunk]:
 
     file.seek(real_offset)
@@ -61,7 +60,7 @@ def _calculate_chunk(
             start_offset=real_offset,
             exception=exc,
         )
-        task_result.add_report(error_report)
+        add_report(error_report)
         logger.error(
             "Unhandled Exception during chunk calculation", **error_report.asdict()
         )
@@ -94,7 +93,7 @@ def _hyperscan_match(
         _verbosity=2,
     )
 
-    chunk = _calculate_chunk(handler, context.file, real_offset, context.task_result)
+    chunk = _calculate_chunk(handler, context.file, real_offset, context.add_report)
 
     # We found some random bytes this handler couldn't parse
     if chunk is None:
@@ -120,7 +119,7 @@ def search_chunks(  # noqa: C901
     file: File,
     file_size: int,
     handlers: Handlers,
-    task_result: TaskResult,
+    add_report: ReportCallback,
 ) -> List[ValidChunk]:
     """Search all ValidChunks within the file.
     Search for patterns and run Handler.calculate_chunk() on the found matches.
@@ -136,7 +135,7 @@ def search_chunks(  # noqa: C901
         file=file,
         file_size=file_size,
         all_chunks=all_chunks,
-        task_result=task_result,
+        add_report=add_report,
     )
 
     try:
